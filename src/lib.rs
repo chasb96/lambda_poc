@@ -1,25 +1,37 @@
-use lambda_runtime::{service_fn, Error, LambdaEvent};
-use serde::de::DeserializeOwned;
-use serde_json::Value;
+#![allow(async_fn_in_trait)]
 
-pub async fn run<S: Clone, T: Router<S>>(context: S) -> Result<(), Error> {
-    let context_ref = &context;
+mod invoke_context;
+mod poc;
+
+use invoke_context::InvokeContext;
+use lambda_runtime::{service_fn, Error};
+use serde::{de::DeserializeOwned, Serialize};
+
+pub async fn run<S, R, H>(state: S) -> Result<(), Error> 
+where
+    S: Clone,
+    R: Serialize,
+    H: Handler<S, R>,
+{
+    let state_ref = &state;
 
     lambda_runtime::run(
         service_fn(
             move |event| async move {
-                handle::<S, T>(context_ref.clone(), event).await
+                let invoke_context = InvokeContext::new(state_ref.clone(), event);
+
+                Ok::<R, Error>(H::handle(invoke_context).await)
             }
         )
     ).await
 }
 
-async fn handle<S, T: Router<S>>(context: S, event: LambdaEvent<Value>) -> Result<Value, Error> {
-    let router: T = serde_json::from_value(event.payload).unwrap();
+pub trait Handler<S, R>: DeserializeOwned
+where
+    S: Clone,
+    R: Serialize,
+{
+    fn get_action(path: String) -> Option<String>;
 
-    Ok(router.handle(context))
-}
-
-pub trait Router<T>: DeserializeOwned {
-    fn handle(&self, context: T) -> Value;
+    async fn handle(context: InvokeContext<S, R, Self>) -> R;
 }
