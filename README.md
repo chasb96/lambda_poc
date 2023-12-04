@@ -8,6 +8,7 @@ Define your actions:
 ```rust
 #[derive(Deserialize)]
 #[serde(tag = "action", content = "content")]
+#[func(pub fn invoke<T>(&self, context: T) -> MyOutputs { _0.do_thing(_0) })]
 #[derive(Assoc)]
 enum MyActions {
     ActionA(AIn),
@@ -22,7 +23,7 @@ enum MyOutputs {
 
 
 impl MyActions {
-    fn do_thing(actions: MyActions) -> MuOutputs {
+    fn do_thing(actions: MyActions) -> MyOutputs {
         match actions {
             ActionA(a) => MyOutputs::ActionA(a.do_thing(a)),
             ActionB(b) => MyOutputs::ActionB(b.do_thing(b)),
