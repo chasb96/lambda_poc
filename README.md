@@ -8,6 +8,7 @@ Define your actions:
 ```rust
 #[derive(Deserialize)]
 #[serde(tag = "action", content = "content")]
+#[derive(Assoc)]
 enum MyActions {
     ActionA(AIn),
     ActionB(BIn),
@@ -17,6 +18,16 @@ enum MyActions {
 enum MyOutputs {
     ActionA(AOut),
     ActionB(BOut),
+}
+
+
+impl MyActions {
+    fn do_thing(actions: MyActions) -> MuOutputs {
+        match actions {
+            ActionA(a) => MyOutputs::ActionA(a.do_thing(a)),
+            ActionB(b) => MyOutputs::ActionB(b.do_thing(b)),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -29,6 +40,12 @@ struct AOut {
     message: String,
 }
 
+impl AIn {
+    fn do_thing(ain: AIn) -> AOut {
+        AOut { message: ain.message }
+    }
+}
+
 #[derive(Deserialize)]
 struct BIn {
     different_message: String,
@@ -37,6 +54,12 @@ struct BIn {
 #[derive(Serialize)]
 struct BOut {
     different_message: String,
+}
+
+impl BIn {
+    fn do_thing(bin: BIn) -> BOut {
+        AOut { different_message: bin.different_message }
+    }
 }
 ```
 
@@ -62,10 +85,7 @@ impl Handler<MyState, MyOutputs> for MyActions
 
     async fn handle(context: InvokeContext<MyState, MyOutputs, Self>) -> MyOutputs {
         // Here context.event.payload will match the type according to get_action
-        match context.event.payload {
-            ActionA(ain) -> MyOutputs::ActionA(AOut { message: ain.message }),
-            ActionB(bin) -> MyOutputs::ActionB(BOut { different_message: bin.different_message }),
-        }
+        MyActions::do_thing(context.event.payload)
     }
 }
 ```
