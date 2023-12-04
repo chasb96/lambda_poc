@@ -21,16 +21,6 @@ enum MyOutputs {
     ActionB(BOut),
 }
 
-
-impl MyActions {
-    fn do_thing(actions: MyActions) -> MyOutputs {
-        match actions {
-            ActionA(a) => MyOutputs::ActionA(a.do_thing(a)),
-            ActionB(b) => MyOutputs::ActionB(b.do_thing(b)),
-        }
-    }
-}
-
 #[derive(Deserialize)]
 struct AIn {
     message: String,
